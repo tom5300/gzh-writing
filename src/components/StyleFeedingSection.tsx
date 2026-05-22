@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useWritingStore } from '../store/writingStore'
-import { Plus, Trash2, Sparkles, Loader2, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { Plus, Sparkles, Loader2, ChevronDown, ChevronUp, X } from 'lucide-react'
 
 export default function StyleFeedingSection() {
   const {
@@ -67,11 +67,7 @@ export default function StyleFeedingSection() {
     }
   }
 
-  // 没有文章且没有分析结果时，不显示组件
-  if (styleArticles.length === 0 && !styleFeatures) {
-    return null
-  }
-
+  // 始终渲染头部（用于展示功能入口），只有内容区域根据状态显示/隐藏
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
       {/* 头部 */}
@@ -99,6 +95,61 @@ export default function StyleFeedingSection() {
       {/* 展开内容 */}
       {expanded && (
         <div className="px-5 pb-5 space-y-4">
+          {/* 添加文章表单 */}
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={articleTitle}
+              onChange={(e) => setArticleTitle(e.target.value)}
+              placeholder="文章标题（选填）"
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400"
+            />
+            <textarea
+              value={articleInput}
+              onChange={(e) => setArticleInput(e.target.value)}
+              placeholder="粘贴文章内容（至少100字）..."
+              rows={4}
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleAddArticle}
+                disabled={!articleInput.trim()}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+              >
+                <Plus size={14} />
+                添加文章
+              </button>
+              {styleArticles.length >= 3 && !styleFeatures && (
+                <button
+                  onClick={handleAnalyzeStyle}
+                  disabled={styleAnalyzing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+                >
+                  {styleAnalyzing ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      分析中...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={14} />
+                      分析风格
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 空状态提示 */}
+          {styleArticles.length === 0 && (
+            <div className="text-center py-4 text-slate-400">
+              <p className="text-sm">添加文章，学习你的写作风格</p>
+              <p className="text-xs mt-1">让 AI 写出更像你风格的内容</p>
+            </div>
+          )}
+
           {/* 风格特征预览 */}
           {styleFeatures && (
             <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-100">
