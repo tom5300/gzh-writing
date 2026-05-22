@@ -8,9 +8,7 @@ export default function Header() {
     <header className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
       <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-800 flex items-center justify-center">
-            <span className="text-white text-sm font-bold">W</span>
-          </div>
+          <img src="/favicon.svg" alt="logo" className="w-8 h-8" />
           <span className="font-bold text-slate-800 text-base tracking-tight">公众号写作神器</span>
         </div>
         <button
