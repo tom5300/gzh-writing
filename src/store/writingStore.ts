@@ -67,6 +67,10 @@ interface WritingState {
   styleArticles: StyleArticle[]
   styleFeatures: StyleFeatures | null
   styleAnalyzing: boolean
+  // Humanizer
+  humanizedArticle: string
+  humanizing: boolean
+  showHumanizerModal: boolean
   // Toast
   toasts: Array<{ id: string; message: string; type: 'success' | 'error' }>
 
@@ -94,6 +98,11 @@ interface WritingState {
   setStyleFeatures: (features: StyleFeatures | null) => void
   setStyleAnalyzing: (v: boolean) => void
   clearStyleData: () => void
+  // Humanizer actions
+  setHumanizedArticle: (article: string) => void
+  setHumanizing: (v: boolean) => void
+  openHumanizerModal: () => void
+  closeHumanizerModal: () => void
   addToast: (message: string, type?: 'success' | 'error') => void
   removeToast: (id: string) => void
   resetWorkflow: () => void
@@ -192,6 +201,10 @@ export const useWritingStore = create<WritingState>((set, get) => {
     styleArticles: savedData.styleArticles,
     styleFeatures: savedData.styleFeatures,
     styleAnalyzing: false,
+    // Humanizer
+    humanizedArticle: '',
+    humanizing: false,
+    showHumanizerModal: false,
     toasts: [],
 
     loadSettings: () => set({ settings: readSettings() }),
@@ -273,6 +286,11 @@ export const useWritingStore = create<WritingState>((set, get) => {
       })
       saveWritingData(createWritingDataFromState({ ...get(), styleArticles: [], styleFeatures: null }))
     },
+    // Humanizer actions
+    setHumanizedArticle: (article) => set({ humanizedArticle: article }),
+    setHumanizing: (v) => set({ humanizing: v }),
+    openHumanizerModal: () => set({ showHumanizerModal: true }),
+    closeHumanizerModal: () => set({ showHumanizerModal: false, humanizedArticle: '' }),
     addToast: (message, type = 'success') => {
       const id = Date.now().toString()
       set((state) => ({ toasts: [...state.toasts, { id, message, type }] }))

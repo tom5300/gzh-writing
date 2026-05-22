@@ -7,6 +7,7 @@ import ArticleSection from '@/components/ArticleSection'
 import TitlesSection from '@/components/TitlesSection'
 import CoverSection from '@/components/CoverSection'
 import SettingsModal from '@/components/SettingsModal'
+import HumanizerModal from '@/components/HumanizerModal'
 import Toast from '@/components/Toast'
 
 export default function Home() {
@@ -39,6 +40,7 @@ export default function Home() {
       </footer>
 
       <SettingsModal />
+      <HumanizerModal />
       <Toast />
     </div>
   )

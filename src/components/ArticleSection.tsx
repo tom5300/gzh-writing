@@ -1,10 +1,10 @@
 import { useWritingStore } from '../store/writingStore'
 import { marked } from 'marked'
-import { Copy, List, Loader2 } from 'lucide-react'
+import { Copy, List, Loader2, Sparkles } from 'lucide-react'
 import { copyToClipboard, generateTitles } from '../services/api'
 
 export default function ArticleSection() {
-  const { currentArticle, articleGenerating, titlesGenerating, styles, selectedStyleId } = useWritingStore()
+  const { currentArticle, articleGenerating, titlesGenerating, styles, selectedStyleId, openHumanizerModal } = useWritingStore()
 
   if (!currentArticle && !articleGenerating) return null
 
@@ -20,13 +20,22 @@ export default function ArticleSection() {
           )}
         </div>
         {currentArticle && (
-          <button
-            onClick={() => copyToClipboard(currentArticle)}
-            className="text-sm text-slate-400 hover:text-indigo-600 flex items-center gap-1.5 transition-colors"
-          >
-            <Copy size={14} />
-            <span>复制正文</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => copyToClipboard(currentArticle)}
+              className="px-3 py-1.5 text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg flex items-center gap-1.5 transition-all"
+            >
+              <Copy size={14} />
+              <span>复制正文</span>
+            </button>
+            <button
+              onClick={openHumanizerModal}
+              className="px-3 py-1.5 text-sm text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg flex items-center gap-1.5 transition-all"
+            >
+              <Sparkles size={14} />
+              <span>去除AI味道</span>
+            </button>
+          </div>
         )}
       </div>
       <div className="px-5 py-4 prose prose-slate max-w-none min-h-[100px] text-sm">
