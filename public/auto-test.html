@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>自动测试</title></head>
+<body>
+<h2>正在运行测试，请稍候...</h2>
+<pre id="log" style="font-size:12px;white-space:pre-wrap;"></pre>
+<script>
+const log = document.getElementById('log');
+const BASE = '';
+const settings = JSON.parse(localStorage.getItem('wt_settings') || '{}');
+// 星座命理领域专项测试
+settings.imageModel = 'wanx-v1';
+
+function out(msg) { log.textContent += msg + '\n'; }
+
+(async function() {
+  out('========================================');
+  out('  公众号写作神器 - 自动化测试');
+  out('========================================\n');
+  out('配置检查:');
+  out(`  文本API: ${settings.apiUrl ? '✅' : '❌'}`);
+  out(`  文本Key: ${settings.apiKey ? '✅' : '❌'}`);
+  out(`  文本模型: ${settings.modelName || '未配置'}`);
+  out(`  图片API: ${settings.imageUrl ? '✅' : '❌'}`);
+  out(`  图片Key: ${settings.imageApiKey ? '✅' : '❌'}`);
+  out(`  图片模型: ${settings.imageModel || '未配置'}\n`);
+
+  const results = [];
+
+  // 1. 健康检查
+  out('--- 1. 健康检查 GET /api/health ---');
+  try {
+    const r = await fetch(`${BASE}/api/health`);
+    const d = await r.json();
+    const pass = r.status === 200 && d.success === true;
+    out(`  状态: ${r.status} | ${pass ? '✅' : '❌'} | ${JSON.stringify(d)}`);
+    results.push({ name: '健康检查', pass });
+  } catch (e) { out(`  ❌ ${e.message}`); results.push({ name: '健康检查', pass: false }); }
+
+  // 2. 风格列表
+  out('\n--- 2. 风格列表 GET /api/styles ---');
+  try {
+    const r = await fetch(`${BASE}/api/styles`);
+    const d = await r.json();
+    const pass = r.status === 200 && d.styles?.length >= 3;
+    out(`  状态: ${r.status} | 风格数: ${d.styles?.length} | ${pass ? '✅' : '❌'}`);
+    d.styles?.forEach(s => out(`    - [${s.id}] ${s.name}`));
+    results.push({ name: '风格列表', pass });
+  } catch (e) { out(`  ❌ ${e.message}`); results.push({ name: '风格列表', pass: false }); }
+
+  // 3. 参数校验
+  out('\n--- 3. 参数校验 ---');
+  const paramTests = [
+    { name: 'article缺参数', url: '/api/article', body: { topic: 'test' }, expect: 400 },
+    { name: 'titles缺参数', url: '/api/titles', body: { article: 'test' }, expect: 400 },
+    { name: 'cover/prompts缺参数', url: '/api/cover/prompts', body: { article: 'test' }, expect: 400 },
+    { name: 'cover/generate缺参数', url: '/api/cover/generate', body: { prompt: 'test' }, expect: 400 },
+  ];
+  for (const t of paramTests) {
+    try {
+      const r = await fetch(`${BASE}${t.url}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(t.body),
+      });
+      const d = await r.json();
+      const pass = r.status === t.expect;
+      out(`  ${t.name}: ${pass ? '✅' : '❌'} (期望${t.expect}, 实际${r.status}, error="${d.error}")`);
+      results.push({ name: t.name, pass });
+    } catch (e) { out(`  ${t.name}: ❌ ${e.message}`); results.push({ name: t.name, pass: false }); }
+  }
+
+  if (!settings.apiUrl || !settings.apiKey || !settings.modelName) {
+    out('\n⚠️ 文本模型未配置，跳过AI测试');
+  } else {
+    // 4. 正文生成 (SSE)
+    out('\n--- 4. 正文生成 POST /api/article (SSE流式) ---');
+    let article = '';
+    try {
+      const r = await fetch(`${BASE}/api/article`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: '2026年6月12星座运势全面解析，谁将逆风翻盘？1500字',
+          styleId: '10',
+          apiUrl: settings.apiUrl,
+          apiKey: settings.apiKey,
+          modelName: settings.modelName,
+        }),
+      });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.error || '请求失败'); }
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '', chunks = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data: ')) {
+            const data = trimmed.slice(6);
+            if (data === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.content) { article += parsed.content; chunks++; }
+              if (parsed.error) throw new Error(parsed.error);
+            } catch (e) { if (e.message && !e.message.includes('JSON')) throw e; }
+          }
+        }
+      }
+      const pass = article.length > 0;
+      out(`  流式块: ${chunks} | 字数: ${article.length} | ${pass ? '✅' : '❌'}`);
+      out(`  内容: ${article.slice(0, 200)}`);
+      results.push({ name: '正文生成(SSE)', pass });
+    } catch (e) { out(`  ❌ ${e.message}`); results.push({ name: '正文生成(SSE)', pass: false }); }
+
+    // 5. 标题摘要
+    if (article) {
+      out('\n--- 5. 标题摘要 POST /api/titles ---');
+      try {
+        const r = await fetch(`${BASE}/api/titles`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ article, apiUrl: settings.apiUrl, apiKey: settings.apiKey, modelName: settings.modelName }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || '请求失败');
+        const pass = Array.isArray(d.titles) && d.titles.length >= 1;
+        out(`  状态: ${r.status} | 标题数: ${d.titles?.length} | ${pass ? '✅' : '❌'}`);
+        d.titles?.forEach((t, i) => out(`    ${i+1}. ${t.title} | ${t.summary}`));
+        results.push({ name: '标题摘要', pass });
+      } catch (e) { out(`  ❌ ${e.message}`); results.push({ name: '标题摘要', pass: false }); }
+
+      // 6. 封面 Prompt
+      out('\n--- 6. 封面Prompt POST /api/cover/prompts ---');
+      let prompts = [];
+      try {
+        const r = await fetch(`${BASE}/api/cover/prompts`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ article, apiUrl: settings.apiUrl, apiKey: settings.apiKey, modelName: settings.modelName }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || '请求失败');
+        prompts = d.prompts || [];
+        const pass = prompts.length >= 1;
+        out(`  状态: ${r.status} | Prompt数: ${prompts.length} | 关键点: ${JSON.stringify(d.keyPoints)} | ${pass ? '✅' : '❌'}`);
+        prompts.forEach((p, i) => out(`    ${i+1}. ${p.slice(0, 80)}...`));
+        results.push({ name: '封面Prompt', pass });
+      } catch (e) { out(`  ❌ ${e.message}`); results.push({ name: '封面Prompt', pass: false }); }
+
+      // 7. 封面图生成
+      if (settings.imageUrl && settings.imageApiKey && settings.imageModel && prompts.length > 0) {
+        out('\n--- 7. 封面图生成 POST /api/cover/generate ---');
+        let imageUrl = '';
+        try {
+          const r = await fetch(`${BASE}/api/cover/generate`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: prompts[0], apiUrl: settings.imageUrl, apiKey: settings.imageApiKey, modelName: settings.imageModel }),
+          });
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error || '请求失败');
+          imageUrl = d.url || '';
+          const pass = !!(d.url || d.b64_json);
+          out(`  状态: ${r.status} | URL: ${d.url ? '有' : '无'} | Base64: ${d.b64_json ? '有' : '无'} | ${pass ? '✅' : '❌'}`);
+          results.push({ name: '封面图生成', pass });
+
+          // 8. 图片代理
+          if (imageUrl) {
+            out('\n--- 8. 图片代理 GET /api/cover/proxy ---');
+            try {
+              const res = await fetch(`${BASE}/api/cover/proxy?url=${encodeURIComponent(imageUrl)}`);
+              const pass = res.status === 200;
+              out(`  状态: ${res.status} | Content-Type: ${res.headers.get('content-type')} | ${pass ? '✅' : '❌'}`);
+              results.push({ name: '图片代理', pass });
+            } catch (e) { out(`  ❌ ${e.message}`); results.push({ name: '图片代理', pass: false }); }
+          }
+        } catch (e) { out(`  ❌ ${e.message}`); results.push({ name: '封面图生成', pass: false }); }
+      } else if (!settings.imageUrl || !settings.imageApiKey || !settings.imageModel) {
+        out('\n⚠️ 图片模型未配置，跳过封面图测试');
+      }
+    }
+  }
+
+  // 汇总
+  out('\n========================================');
+  out('  测试汇总');
+  out('========================================');
+  const passed = results.filter(r => r.pass).length;
+  const total = results.length;
+  results.forEach(r => out(`  ${r.pass ? '✅' : '❌'} ${r.name}`));
+  out(`\n通过: ${passed}/${total}`);
+  out(passed === total ? '🎉 全部通过！' : '⚠️ 存在失败项');
+
+  // 回传结果
+  try {
+    await fetch(`${BASE}/api/test-results`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ results, passed, total, log: log.textContent }),
+    });
+    out('\n测试结果已回传到服务器');
+  } catch (e) { out(`\n回传失败: ${e.message}`); }
+})();
+</script>
+</body>
+</html>
