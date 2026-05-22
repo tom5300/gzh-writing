@@ -50,21 +50,53 @@ router.post('/humanize', async (req: Request, res: Response) => {
 
     const raw = await createChatCompletionJSON({ apiUrl, apiKey, modelName, messages })
     
-    // 尝试提取纯文本（可能包含 markdown 格式）
-    const result = raw.trim()
+    // 清理 markdown 代码块
+    let result = raw.trim()
+    result = result.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '')
     
-    // 如果结果被引号包裹，尝试提取内部内容
-    if ((result.startsWith('"') && result.endsWith('"')) || 
+    // 清理单独的反引号
+    if ((result.startsWith('`') && result.endsWith('`')) || 
+        (result.startsWith('"') && result.endsWith('"')) || 
         (result.startsWith("'") && result.endsWith("'"))) {
+      // 尝试提取内部内容
       try {
-        const parsed = JSON.parse(raw)
-        res.json({ humanized: typeof parsed === 'string' ? parsed : result })
-        return
+        // 如果是 JSON 格式，尝试解析
+        if (result.startsWith('{') || result.startsWith('[')) {
+          const parsed = JSON.parse(result)
+          // 检查常见的文本字段
+          if (typeof parsed === 'object' && parsed !== null) {
+            const textField = parsed.text || parsed.content || parsed.result || parsed.output || parsed.response
+            if (typeof textField === 'string') {
+              result = textField
+            } else {
+              result = typeof parsed === 'string' ? parsed : JSON.stringify(parsed, null, 2)
+            }
+          } else {
+            result = String(parsed)
+          }
+        } else {
+          // 不是 JSON，去掉包裹的反引号或引号
+          result = result.slice(1, -1)
+        }
       } catch {
-        // 不是 JSON，直接返回
+        // 不是 JSON 或解析失败，尝试去掉包裹的引号/反引号
+        if ((result.startsWith('"') && result.endsWith('"')) || 
+            (result.startsWith("'") && result.endsWith("'")) ||
+            (result.startsWith('`') && result.endsWith('`'))) {
+          result = result.slice(1, -1)
+        }
       }
     }
-
+    
+    // 处理可能的 "答案:" 或 "结果:" 前缀
+    result = result.replace(/^(?:答案|结果|修改后|重写后)[:：]\s*/i, '')
+    
+    // 移除任何残留的 markdown 格式
+    result = result.replace(/\*\*(.+?)\*\*/g, '$1')  // 粗体
+    result = result.replace(/\*(.+?)\*/g, '$1')      // 斜体
+    result = result.replace(/_(.+?)_/g, '$1')        // 下划线
+    result = result.replace(/`(.+?)`/g, '$1')        // 行内代码
+    
     res.json({ humanized: result })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)

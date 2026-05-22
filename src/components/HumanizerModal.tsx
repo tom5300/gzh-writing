@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Copy, Check, RefreshCw } from 'lucide-react'
 import { useWritingStore } from '../store/writingStore'
 
@@ -17,6 +17,13 @@ export default function HumanizerModal() {
 
   const [copiedLeft, setCopiedLeft] = useState(false)
   const [copiedRight, setCopiedRight] = useState(false)
+
+  // 模态框打开时自动处理
+  useEffect(() => {
+    if (showHumanizerModal && currentArticle.trim() && settings.apiUrl && settings.apiKey && settings.modelName) {
+      handleHumanize()
+    }
+  }, [showHumanizerModal])
 
   const handleHumanize = async () => {
     if (!currentArticle.trim()) {
