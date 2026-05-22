@@ -5,6 +5,8 @@ import express, {
 } from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { getStyleList } from './services/styleLoader.js'
 import articleRoutes from './routes/article.js'
 import titlesRoutes from './routes/titles.js'
@@ -12,6 +14,9 @@ import coverRoutes from './routes/cover.js'
 import testRoutes from './routes/test.js'
 
 dotenv.config()
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const app: express.Application = express()
 
@@ -34,15 +39,19 @@ app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ success: true, message: 'ok' })
 })
 
+// 服务前端静态文件
+const distPath = path.join(__dirname, '../../dist')
+app.use(express.static(distPath))
+
+// 前端路由重定向（SPA）
+app.get('*', (_req: Request, res: Response) => {
+  res.sendFile(path.join(distPath, 'index.html'))
+})
+
 // 错误处理
 app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled error:', error)
   res.status(500).json({ success: false, error: 'Server internal error' })
-})
-
-// 404
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({ success: false, error: 'API not found' })
 })
 
 export default app
