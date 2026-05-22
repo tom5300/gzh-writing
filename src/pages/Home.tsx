@@ -25,9 +25,9 @@ export default function Home() {
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">开始创作</h2>
             <p className="mt-2 text-slate-500 text-sm">输入你的主题，让 AI 帮你完成剩下的工作。</p>
           </div>
-          <InputSection />
           <StyleFeedingSection />
           <DomainSelector />
+          <InputSection />
           <ArticleSection />
           <TitlesSection />
           <CoverSection />
