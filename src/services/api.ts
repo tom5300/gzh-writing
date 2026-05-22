@@ -145,8 +145,7 @@ export async function generateCoverImage(promptIndex: number) {
     return
   }
 
-  store().setCoverImageGenerating(true, promptIndex)
-  store().setCoverImageData(null)
+  store().setCoverImageGenerating(promptIndex, true)
 
   try {
     const res = await fetch('/api/cover/generate', {
@@ -161,18 +160,19 @@ export async function generateCoverImage(promptIndex: number) {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || '生成失败')
-    store().setCoverImageData(data)
+    store().setCoverImage(promptIndex, data)
     store().addToast('封面图生成完成')
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     store().addToast(msg, 'error')
   } finally {
-    store().setCoverImageGenerating(false, -1)
+    store().setCoverImageGenerating(promptIndex, false)
   }
 }
 
-export async function downloadCoverImage() {
-  const { coverImageData, topic } = store()
+export async function downloadCoverImage(index: number) {
+  const { coverImages, topic } = store()
+  const coverImageData = coverImages.get(index)
   if (!coverImageData) return
 
   try {
@@ -198,7 +198,7 @@ export async function downloadCoverImage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `cover_${topic.trim().slice(0, 20) || 'image'}.png`
+    a.download = `cover_${index + 1}_${topic.trim().slice(0, 20) || 'image'}.png`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)

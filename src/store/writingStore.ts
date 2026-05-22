@@ -34,9 +34,8 @@ interface WritingState {
   keyPoints: string[]
   coverPrompts: string[]
   coverPromptsGenerating: boolean
-  coverImageData: { url?: string; b64_json?: string; revised_prompt?: string } | null
-  coverImageGenerating: boolean
-  coverImageGeneratingIndex: number
+  coverImages: Map<number, { url?: string; b64_json?: string; revised_prompt?: string }>
+  coverImageGeneratingIndices: Set<number>
   // Toast
   toasts: Array<{ id: string; message: string; type: 'success' | 'error' }>
 
@@ -57,8 +56,8 @@ interface WritingState {
   setKeyPoints: (points: string[]) => void
   setCoverPrompts: (prompts: string[]) => void
   setCoverPromptsGenerating: (v: boolean) => void
-  setCoverImageData: (data: WritingState['coverImageData']) => void
-  setCoverImageGenerating: (v: boolean, index?: number) => void
+  setCoverImage: (index: number, data: { url?: string; b64_json?: string; revised_prompt?: string }) => void
+  setCoverImageGenerating: (index: number, v: boolean) => void
   addToast: (message: string, type?: 'success' | 'error') => void
   removeToast: (id: string) => void
   resetWorkflow: () => void
@@ -97,9 +96,8 @@ export const useWritingStore = create<WritingState>((set) => ({
   keyPoints: [],
   coverPrompts: [],
   coverPromptsGenerating: false,
-  coverImageData: null,
-  coverImageGenerating: false,
-  coverImageGeneratingIndex: -1,
+  coverImages: new Map(),
+  coverImageGeneratingIndices: new Set(),
   toasts: [],
 
   loadSettings: () => set({ settings: readSettings() }),
@@ -121,8 +119,20 @@ export const useWritingStore = create<WritingState>((set) => ({
   setKeyPoints: (points) => set({ keyPoints: points }),
   setCoverPrompts: (prompts) => set({ coverPrompts: prompts }),
   setCoverPromptsGenerating: (v) => set({ coverPromptsGenerating: v }),
-  setCoverImageData: (data) => set({ coverImageData: data }),
-  setCoverImageGenerating: (v, index = -1) => set({ coverImageGenerating: v, coverImageGeneratingIndex: index }),
+  setCoverImage: (index, data) => set((state) => {
+    const newImages = new Map(state.coverImages)
+    newImages.set(index, data)
+    return { coverImages: newImages }
+  }),
+  setCoverImageGenerating: (index, v) => set((state) => {
+    const newIndices = new Set(state.coverImageGeneratingIndices)
+    if (v) {
+      newIndices.add(index)
+    } else {
+      newIndices.delete(index)
+    }
+    return { coverImageGeneratingIndices: newIndices }
+  }),
   addToast: (message, type = 'success') => {
     const id = Date.now().toString()
     set((state) => ({ toasts: [...state.toasts, { id, message, type }] }))
@@ -136,6 +146,7 @@ export const useWritingStore = create<WritingState>((set) => ({
     titles: [],
     keyPoints: [],
     coverPrompts: [],
-    coverImageData: null,
+    coverImages: new Map(),
+    coverImageGeneratingIndices: new Set(),
   }),
 }))
