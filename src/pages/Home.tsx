@@ -1,8 +1,9 @@
 import Header from '@/components/Header'
 import Hero from '@/components/Hero'
 import Features from '@/components/Features'
-import DomainSelector from '@/components/DomainSelector'
 import InputSection from '@/components/InputSection'
+import StyleFeedingSection from '@/components/StyleFeedingSection'
+import DomainSelector from '@/components/DomainSelector'
 import ArticleSection from '@/components/ArticleSection'
 import TitlesSection from '@/components/TitlesSection'
 import CoverSection from '@/components/CoverSection'
@@ -24,8 +25,9 @@ export default function Home() {
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">开始创作</h2>
             <p className="mt-2 text-slate-500 text-sm">输入你的主题，让 AI 帮你完成剩下的工作。</p>
           </div>
-          <DomainSelector />
           <InputSection />
+          <StyleFeedingSection />
+          <DomainSelector />
           <ArticleSection />
           <TitlesSection />
           <CoverSection />
