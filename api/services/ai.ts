@@ -91,7 +91,7 @@ interface ImageResult {
 }
 
 export async function createImage(params: CreateImageParams): Promise<ImageResult> {
-  const { apiUrl, apiKey, modelName, prompt, size = '1024*1024' } = params
+  const { apiUrl, apiKey, modelName, prompt, size = '1024x1024' } = params
   const isDashScope = /dashscope/i.test(apiUrl)
 
   if (isDashScope) {
