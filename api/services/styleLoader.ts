@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const STYLES_DIR = path.join(__dirname, '../../styles')
+const STYLES_DIR = path.join(__dirname, '../../../styles')
 
 interface Style {
   id: string
