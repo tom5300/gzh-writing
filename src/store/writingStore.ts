@@ -14,6 +14,22 @@ interface TitleItem {
   summary: string
 }
 
+interface StyleArticle {
+  id: string
+  title: string
+  content: string
+  addedAt: number
+}
+
+interface StyleFeatures {
+  titlePattern: string        // 标题风格特点
+  openingStyle: string        // 开头方式
+  structure: string           // 文章结构
+  languageStyle: string       // 语言风格
+  closingStyle: string        // 结尾方式
+  tone: string                // 语气特点
+}
+
 interface WritingData {
   topic: string
   currentArticle: string
@@ -21,6 +37,8 @@ interface WritingData {
   keyPoints: string[]
   coverPrompts: string[]
   coverImages: Record<number, { url?: string; b64_json?: string; revised_prompt?: string }>
+  styleArticles: StyleArticle[]
+  styleFeatures: StyleFeatures | null
 }
 
 interface WritingState {
@@ -45,6 +63,10 @@ interface WritingState {
   coverPromptsGenerating: boolean
   coverImages: Map<number, { url?: string; b64_json?: string; revised_prompt?: string }>
   coverImageGeneratingIndices: Set<number>
+  // 风格
+  styleArticles: StyleArticle[]
+  styleFeatures: StyleFeatures | null
+  styleAnalyzing: boolean
   // Toast
   toasts: Array<{ id: string; message: string; type: 'success' | 'error' }>
 
@@ -67,6 +89,11 @@ interface WritingState {
   setCoverPromptsGenerating: (v: boolean) => void
   setCoverImage: (index: number, data: { url?: string; b64_json?: string; revised_prompt?: string }) => void
   setCoverImageGenerating: (index: number, v: boolean) => void
+  addStyleArticle: (article: StyleArticle) => void
+  removeStyleArticle: (id: string) => void
+  setStyleFeatures: (features: StyleFeatures | null) => void
+  setStyleAnalyzing: (v: boolean) => void
+  clearStyleData: () => void
   addToast: (message: string, type?: 'success' | 'error') => void
   removeToast: (id: string) => void
   resetWorkflow: () => void
@@ -105,6 +132,8 @@ function readWritingData(): WritingData {
         keyPoints: data.keyPoints || [],
         coverPrompts: data.coverPrompts || [],
         coverImages: data.coverImages || {},
+        styleArticles: data.styleArticles || [],
+        styleFeatures: data.styleFeatures || null,
       }
     }
   } catch { /* ignore */ }
@@ -115,6 +144,8 @@ function readWritingData(): WritingData {
     keyPoints: [],
     coverPrompts: [],
     coverImages: {},
+    styleArticles: [],
+    styleFeatures: null,
   }
 }
 
@@ -134,6 +165,8 @@ function createWritingDataFromState(state: Partial<WritingState>): WritingData {
     coverImages: state.coverImages instanceof Map 
       ? Object.fromEntries(state.coverImages) 
       : state.coverImages || {},
+    styleArticles: state.styleArticles || [],
+    styleFeatures: state.styleFeatures || null,
   }
 }
 
@@ -156,6 +189,9 @@ export const useWritingStore = create<WritingState>((set, get) => {
     coverPromptsGenerating: false,
     coverImages: new Map(Object.entries(savedData.coverImages).map(([k, v]) => [Number(k), v])),
     coverImageGeneratingIndices: new Set(),
+    styleArticles: savedData.styleArticles,
+    styleFeatures: savedData.styleFeatures,
+    styleAnalyzing: false,
     toasts: [],
 
     loadSettings: () => set({ settings: readSettings() }),
@@ -211,6 +247,32 @@ export const useWritingStore = create<WritingState>((set, get) => {
       }
       return { coverImageGeneratingIndices: newIndices }
     }),
+    addStyleArticle: (article) => {
+      set((state) => {
+        const newArticles = [...state.styleArticles, article]
+        saveWritingData(createWritingDataFromState({ ...state, styleArticles: newArticles }))
+        return { styleArticles: newArticles }
+      })
+    },
+    removeStyleArticle: (id) => {
+      set((state) => {
+        const newArticles = state.styleArticles.filter(a => a.id !== id)
+        saveWritingData(createWritingDataFromState({ ...state, styleArticles: newArticles }))
+        return { styleArticles: newArticles }
+      })
+    },
+    setStyleFeatures: (features) => {
+      set({ styleFeatures: features })
+      saveWritingData(createWritingDataFromState({ ...get(), styleFeatures: features }))
+    },
+    setStyleAnalyzing: (v) => set({ styleAnalyzing: v }),
+    clearStyleData: () => {
+      set({
+        styleArticles: [],
+        styleFeatures: null,
+      })
+      saveWritingData(createWritingDataFromState({ ...get(), styleArticles: [], styleFeatures: null }))
+    },
     addToast: (message, type = 'success') => {
       const id = Date.now().toString()
       set((state) => ({ toasts: [...state.toasts, { id, message, type }] }))
@@ -242,6 +304,8 @@ export const useWritingStore = create<WritingState>((set, get) => {
         coverPrompts: [],
         coverImages: new Map(),
         coverImageGeneratingIndices: new Set(),
+        styleArticles: [],
+        styleFeatures: null,
       })
       get().addToast('所有数据已清除')
     },

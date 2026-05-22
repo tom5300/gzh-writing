@@ -11,6 +11,7 @@ import { getStyleList } from './services/styleLoader.js'
 import articleRoutes from './routes/article.js'
 import titlesRoutes from './routes/titles.js'
 import coverRoutes from './routes/cover.js'
+import styleRoutes from './routes/style.js'
 import testRoutes from './routes/test.js'
 
 dotenv.config()
@@ -27,6 +28,7 @@ app.use(express.json({ limit: '1mb' }))
 app.use('/api', articleRoutes)
 app.use('/api', titlesRoutes)
 app.use('/api', coverRoutes)
+app.use('/api', styleRoutes)
 app.use('/api', testRoutes)
 
 // 获取写作风格列表

@@ -9,7 +9,7 @@ export async function fetchStyles() {
 }
 
 export async function generateArticle() {
-  const { topic, selectedStyleId, settings } = store()
+  const { topic, selectedStyleId, settings, styleFeatures } = store()
   if (!topic.trim()) return
   if (!settings.apiUrl || !settings.apiKey || !settings.modelName) {
     store().openSettings()
@@ -30,6 +30,7 @@ export async function generateArticle() {
         apiUrl: settings.apiUrl,
         apiKey: settings.apiKey,
         modelName: settings.modelName,
+        styleFeatures,
       }),
     })
 
@@ -78,7 +79,7 @@ export async function generateArticle() {
 }
 
 export async function generateTitles() {
-  const { currentArticle, settings } = store()
+  const { currentArticle, settings, styleFeatures } = store()
   if (!currentArticle) return
 
   store().setTitlesGenerating(true)
@@ -91,6 +92,7 @@ export async function generateTitles() {
         apiUrl: settings.apiUrl,
         apiKey: settings.apiKey,
         modelName: settings.modelName,
+        styleFeatures,
       }),
     })
     const data = await res.json()

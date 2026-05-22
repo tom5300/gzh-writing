@@ -6,7 +6,7 @@ const router = Router()
 
 router.post('/article', async (req: Request, res: Response) => {
   try {
-    const { topic, styleId, apiUrl, apiKey, modelName } = req.body
+    const { topic, styleId, apiUrl, apiKey, modelName, styleFeatures } = req.body
     if (!topic || !apiUrl || !apiKey || !modelName) {
       res.status(400).json({ error: '缺少必要参数' })
       return
@@ -23,8 +23,31 @@ router.post('/article', async (req: Request, res: Response) => {
     res.setHeader('Connection', 'keep-alive')
     res.setHeader('X-Accel-Buffering', 'no')
 
+    // 构建 system prompt
+    let systemContent = style.content
+    
+    // 如果有风格特征，注入到 system prompt
+    if (styleFeatures) {
+      const styleInjection = `
+
+## 额外风格要求（必须严格遵循）
+
+请严格按照以下风格特征生成文章：
+
+**标题风格**：${styleFeatures.titlePattern}
+**开头方式**：${styleFeatures.openingStyle}
+**文章结构**：${styleFeatures.structure}
+**语言风格**：${styleFeatures.languageStyle}
+**结尾方式**：${styleFeatures.closingStyle}
+**语气特点**：${styleFeatures.tone}
+
+请确保生成的文章完全符合上述风格特征。`
+
+      systemContent += styleInjection
+    }
+
     const messages = [
-      { role: 'system', content: style.content },
+      { role: 'system', content: systemContent },
       { role: 'user', content: topic },
     ]
 
