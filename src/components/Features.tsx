@@ -1,4 +1,4 @@
-import { PenLine, ListChecks, WandSparkles, Rocket, BookOpen, Grid3X3 } from 'lucide-react'
+import { PenLine, ListChecks, WandSparkles, Sparkles, BookOpen, Grid3X3 } from 'lucide-react'
 
 const features = [
   {
@@ -32,10 +32,10 @@ const features = [
     desc: '自动提炼关键内容点，生成 3 个专业封面图 Prompt，选定后一键调用文生图模型出图。',
   },
   {
-    icon: Rocket,
+    icon: Sparkles,
     color: 'rose',
-    title: '即拿即用',
-    desc: '所有文本一键复制到剪贴板，封面图直接下载到本地，无缝对接公众号等平台。',
+    title: '一键去AI味道',
+    desc: '智能识别并去除 AI 写作痕迹，让文章读起来更像真人书写，自然流畅。',
   },
 ]
 
@@ -45,7 +45,7 @@ const colorMap: Record<string, { bg: string; text: string; groupBg: string }> = 
   indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600', groupBg: 'group-hover:bg-indigo-100' },
   amber: { bg: 'bg-amber-50', text: 'text-amber-600', groupBg: 'group-hover:bg-amber-100' },
   emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', groupBg: 'group-hover:bg-emerald-100' },
-  rose: { bg: 'bg-rose-50', text: 'text-rose-500', groupBg: 'group-hover:bg-rose-100' },
+  rose: { bg: 'bg-rose-50', text: 'text-rose-600', groupBg: 'group-hover:bg-rose-100' },
 }
 
 export default function Features() {
