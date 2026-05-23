@@ -101,7 +101,7 @@ export default function StyleFeedingSection() {
       if (!res.ok) throw new Error(data.error || '获取文章失败')
       setWechatArticles(data.articles || [])
       if (data.articles?.length === 0) {
-        addToast('未获取到文章，请检查公众号是否已发布图文', 'warning')
+        addToast('未获取到文章，请检查公众号是否已发布图文', 'error')
       } else {
         addToast(`获取到 ${data.articles?.length || 0} 篇文章`)
       }
