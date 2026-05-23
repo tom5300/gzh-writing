@@ -100,7 +100,11 @@ export default function StyleFeedingSection() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || '获取文章失败')
       setWechatArticles(data.articles || [])
-      addToast(`获取到 ${data.articles?.length || 0} 篇文章`)
+      if (data.articles?.length === 0) {
+        addToast('未获取到文章，请检查公众号是否已发布图文', 'warning')
+      } else {
+        addToast(`获取到 ${data.articles?.length || 0} 篇文章`)
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : '获取文章失败'
       addToast(msg, 'error')
@@ -248,8 +252,25 @@ export default function StyleFeedingSection() {
                 </button>
               </div>
 
-              {wechatArticles.length === 0 && !loadingWechat ? (
-                <p className="text-sm text-slate-500 text-center py-4">暂无文章，请确认是否已发布图文消息</p>
+              {loadingWechat ? (
+                <div className="text-center py-6">
+                  <Loader2 size={24} className="animate-spin mx-auto text-green-500 mb-2" />
+                  <p className="text-sm text-slate-500">正在获取文章列表...</p>
+                </div>
+              ) : wechatArticles.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-slate-600 mb-3">暂无文章可导入</p>
+                  <div className="text-xs text-slate-500 text-left space-y-1 p-3 bg-white rounded-lg border border-slate-200">
+                    <p className="font-medium text-slate-600">可能的原因：</p>
+                    <p>1. 公众号尚未发布任何图文消息</p>
+                    <p>2. 仅服务号支持素材接口</p>
+                    <p>3. 需要在微信公众平台配置 IP 白名单</p>
+                    <p>4. AppID 或 AppSecret 配置有误</p>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-3">
+                    提示：订阅号建议手动粘贴文章内容进行风格学习
+                  </p>
+                </div>
               ) : (
                 <>
                   <div className="max-h-60 overflow-y-auto space-y-2 mb-3">
