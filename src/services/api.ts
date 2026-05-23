@@ -9,12 +9,21 @@ export async function fetchStyles() {
 }
 
 export async function generateArticle() {
-  const { topic, selectedStyleId, settings, styleFeatures } = store()
+  const { topic, selectedStyleId, settings, styleFeatures, personalStyles } = store()
   if (!topic.trim()) return
   if (!settings.apiUrl || !settings.apiKey || !settings.modelName) {
     store().openSettings()
     store().addToast('请先配置 API 设置', 'error')
     return
+  }
+
+  // 如果选择了个人风格，使用该风格的 features
+  let finalStyleFeatures = styleFeatures
+  if (selectedStyleId.startsWith('personal_')) {
+    const personalStyle = personalStyles.find(s => s.id === selectedStyleId)
+    if (personalStyle) {
+      finalStyleFeatures = personalStyle.features
+    }
   }
 
   store().resetWorkflow()
@@ -30,7 +39,7 @@ export async function generateArticle() {
         apiUrl: settings.apiUrl,
         apiKey: settings.apiKey,
         modelName: settings.modelName,
-        styleFeatures,
+        styleFeatures: finalStyleFeatures,
       }),
     })
 

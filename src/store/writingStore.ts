@@ -1,5 +1,28 @@
 import { create } from 'zustand'
 
+// 根据风格特征生成风格名称
+function generateStyleName(features: StyleFeatures): string {
+  const parts: string[] = []
+  
+  // 语气特点作为主要标签
+  if (features.tone) {
+    parts.push(features.tone)
+  }
+  
+  // 语言风格作为次要标签
+  if (features.languageStyle && !parts.includes(features.languageStyle)) {
+    parts.push(features.languageStyle)
+  }
+  
+  // 结构特点
+  if (features.structure) {
+    parts.push(features.structure.replace(/[\[\]【】]/g, ''))
+  }
+  
+  const name = parts.slice(0, 2).join(' · ')
+  return name || '个人风格'
+}
+
 interface Settings {
   apiUrl: string
   apiKey: string
@@ -41,6 +64,7 @@ interface WritingData {
   coverImages: Record<number, { url?: string; b64_json?: string; revised_prompt?: string }>
   styleArticles: StyleArticle[]
   styleFeatures: StyleFeatures | null
+  personalStyles: Array<{ id: string; name: string; features: StyleFeatures }>
 }
 
 interface WritingState {
@@ -69,6 +93,7 @@ interface WritingState {
   styleArticles: StyleArticle[]
   styleFeatures: StyleFeatures | null
   styleAnalyzing: boolean
+  personalStyles: Array<{ id: string; name: string; features: StyleFeatures }>
   // Humanizer
   humanizedArticle: string
   humanizing: boolean
@@ -147,6 +172,7 @@ function readWritingData(): WritingData {
         coverImages: data.coverImages || {},
         styleArticles: data.styleArticles || [],
         styleFeatures: data.styleFeatures || null,
+        personalStyles: data.personalStyles || [],
       }
     }
   } catch { /* ignore */ }
@@ -159,6 +185,7 @@ function readWritingData(): WritingData {
     coverImages: {},
     styleArticles: [],
     styleFeatures: null,
+    personalStyles: [],
   }
 }
 
@@ -180,6 +207,7 @@ function createWritingDataFromState(state: Partial<WritingState>): WritingData {
       : state.coverImages || {},
     styleArticles: state.styleArticles || [],
     styleFeatures: state.styleFeatures || null,
+    personalStyles: state.personalStyles || [],
   }
 }
 
@@ -205,6 +233,7 @@ export const useWritingStore = create<WritingState>((set, get) => {
     styleArticles: savedData.styleArticles,
     styleFeatures: savedData.styleFeatures,
     styleAnalyzing: false,
+    personalStyles: savedData.personalStyles,
     // Humanizer
     humanizedArticle: '',
     humanizing: false,
@@ -279,16 +308,37 @@ export const useWritingStore = create<WritingState>((set, get) => {
       })
     },
     setStyleFeatures: (features) => {
-      set({ styleFeatures: features })
-      saveWritingData(createWritingDataFromState({ ...get(), styleFeatures: features }))
+      if (features) {
+        // 生成风格名称
+        const styleName = generateStyleName(features)
+        const personalStyleId = `personal_${Date.now()}`
+        const newPersonalStyle = {
+          id: personalStyleId,
+          name: styleName,
+          features,
+        }
+        set((state) => {
+          const newPersonalStyles = [...state.personalStyles, newPersonalStyle]
+          saveWritingData(createWritingDataFromState({ ...state, styleFeatures: features, personalStyles: newPersonalStyles }))
+          return { 
+            styleFeatures: features, 
+            personalStyles: newPersonalStyles,
+            selectedStyleId: personalStyleId, // 自动选中新创建的个人风格
+          }
+        })
+      } else {
+        set({ styleFeatures: features })
+        saveWritingData(createWritingDataFromState({ ...get(), styleFeatures: features }))
+      }
     },
     setStyleAnalyzing: (v) => set({ styleAnalyzing: v }),
     clearStyleData: () => {
       set({
         styleArticles: [],
         styleFeatures: null,
+        personalStyles: [],
       })
-      saveWritingData(createWritingDataFromState({ ...get(), styleArticles: [], styleFeatures: null }))
+      saveWritingData(createWritingDataFromState({ ...get(), styleArticles: [], styleFeatures: null, personalStyles: [] }))
     },
     // Humanizer actions
     setHumanizedArticle: (article) => set({ humanizedArticle: article }),
@@ -328,6 +378,7 @@ export const useWritingStore = create<WritingState>((set, get) => {
         coverImageGeneratingIndices: new Set(),
         styleArticles: [],
         styleFeatures: null,
+        personalStyles: [],
       })
       get().addToast('所有数据已清除')
     },

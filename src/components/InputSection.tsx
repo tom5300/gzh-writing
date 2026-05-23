@@ -5,7 +5,7 @@ import { PenLine, Loader2, Sparkles } from 'lucide-react'
 import { domains, getDomainById } from '../data/domains'
 
 export default function InputSection() {
-  const { topic, setTopic, styles, selectedStyleId, setSelectedStyleId, articleGenerating, selectedDomainId } = useWritingStore()
+  const { topic, setTopic, styles, selectedStyleId, setSelectedStyleId, articleGenerating, selectedDomainId, personalStyles } = useWritingStore()
   const [showPresets, setShowPresets] = useState(false)
 
   useEffect(() => {
@@ -77,17 +77,32 @@ export default function InputSection() {
               onChange={(e) => setSelectedStyleId(e.target.value)}
               className="w-full px-4 py-3 border border-slate-300 rounded-xl text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
             >
-              {styles.length === 0 ? (
+              {styles.length === 0 && personalStyles.length === 0 ? (
                 <option value="">加载中...</option>
               ) : (
-                styles.map(s => {
-                  const isRecommended = currentDomain?.recommendedStyles.includes(s.name)
-                  return (
-                    <option key={s.id} value={s.id}>
-                      {isRecommended ? '⭐ ' : ''}{s.name}
-                    </option>
-                  )
-                })
+                <>
+                  {/* 个人风格优先显示 */}
+                  {personalStyles.length > 0 && (
+                    <optgroup label="个人风格">
+                      {personalStyles.map(s => (
+                        <option key={s.id} value={s.id}>
+                          👤 {s.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {/* 固定风格 */}
+                  <optgroup label="预设风格">
+                    {styles.map(s => {
+                      const isRecommended = currentDomain?.recommendedStyles.includes(s.name)
+                      return (
+                        <option key={s.id} value={s.id}>
+                          {isRecommended ? '⭐ ' : ''}{s.name}
+                        </option>
+                      )
+                    })}
+                  </optgroup>
+                </>
               )}
             </select>
           </div>
