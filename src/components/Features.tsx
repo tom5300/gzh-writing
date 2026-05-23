@@ -1,7 +1,18 @@
-import { useWritingStore } from '../store/writingStore'
-import { PenLine, ListChecks, WandSparkles, Rocket } from 'lucide-react'
+import { PenLine, ListChecks, WandSparkles, Rocket, BookOpen, Grid3X3 } from 'lucide-react'
 
 const features = [
+  {
+    icon: BookOpen,
+    color: 'violet',
+    title: '风格喂养',
+    desc: '添加你喜欢的文章，AI 学习并模仿其写作风格，让生成的内容更有个性和辨识度。',
+  },
+  {
+    icon: Grid3X3,
+    color: 'cyan',
+    title: '领域选择',
+    desc: '精准匹配内容领域，AI据此调整用词、语气和专业程度，让每篇文章都恰到好处。',
+  },
   {
     icon: PenLine,
     color: 'indigo',
@@ -29,6 +40,8 @@ const features = [
 ]
 
 const colorMap: Record<string, { bg: string; text: string; groupBg: string }> = {
+  violet: { bg: 'bg-violet-50', text: 'text-violet-600', groupBg: 'group-hover:bg-violet-100' },
+  cyan: { bg: 'bg-cyan-50', text: 'text-cyan-600', groupBg: 'group-hover:bg-cyan-100' },
   indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600', groupBg: 'group-hover:bg-indigo-100' },
   amber: { bg: 'bg-amber-50', text: 'text-amber-600', groupBg: 'group-hover:bg-amber-100' },
   emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', groupBg: 'group-hover:bg-emerald-100' },
@@ -41,7 +54,7 @@ export default function Features() {
       <div className="max-w-5xl mx-auto px-5">
         <div className="text-center mb-12">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">从写作到发布，一站闭环</h2>
-          <p className="mt-2 text-slate-500 text-sm">四大能力模块串联完整创作流程</p>
+          <p className="mt-2 text-slate-500 text-sm">六大能力模块串联完整创作流程</p>
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           {features.map((f) => {
