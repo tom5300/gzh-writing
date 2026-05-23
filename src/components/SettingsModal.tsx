@@ -16,6 +16,8 @@ export default function SettingsModal() {
       imageUrl: form.get('imageUrl') as string,
       imageApiKey: form.get('imageApiKey') as string,
       imageModel: form.get('imageModel') as string,
+      wechatAppId: form.get('wechatAppId') as string,
+      wechatAppSecret: form.get('wechatAppSecret') as string,
     })
   }
 
@@ -104,6 +106,36 @@ export default function SettingsModal() {
                   placeholder="dall-e-3 / doubao-seedream"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* 微信公众平台 */}
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+              <span className="w-5 h-5 rounded bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">W</span>
+              微信公众平台（获取公众号文章）
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">AppID</label>
+                <input
+                  name="wechatAppId"
+                  defaultValue={settings.wechatAppId}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="wx1234567890abcdef"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">AppSecret</label>
+                <input
+                  name="wechatAppSecret"
+                  type="password"
+                  defaultValue={settings.wechatAppSecret}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="abcdef1234567890..."
+                />
+              </div>
+              <p className="text-xs text-slate-400">用于获取你的公众号文章素材，请前往微信公众平台 → 设置与开发 → 基本配置获取。</p>
             </div>
           </div>
 

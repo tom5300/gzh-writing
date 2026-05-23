@@ -7,6 +7,8 @@ interface Settings {
   imageUrl: string
   imageApiKey: string
   imageModel: string
+  wechatAppId: string
+  wechatAppSecret: string
 }
 
 interface TitleItem {
@@ -119,6 +121,8 @@ const defaultSettings: Settings = {
   imageUrl: '',
   imageApiKey: '',
   imageModel: '',
+  wechatAppId: '',
+  wechatAppSecret: '',
 }
 
 function readSettings(): Settings {

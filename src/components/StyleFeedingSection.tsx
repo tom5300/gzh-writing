@@ -1,6 +1,15 @@
 import { useState } from 'react'
 import { useWritingStore } from '../store/writingStore'
-import { Plus, Sparkles, Loader2, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { Plus, Sparkles, Loader2, ChevronDown, ChevronUp, X, ExternalLink, Check } from 'lucide-react'
+
+interface WechatArticle {
+  mediaId: string
+  title: string
+  author: string
+  digest: string
+  url: string
+  thumbUrl: string
+}
 
 export default function StyleFeedingSection() {
   const {
@@ -12,6 +21,10 @@ export default function StyleFeedingSection() {
   const [articleInput, setArticleInput] = useState('')
   const [articleTitle, setArticleTitle] = useState('')
   const [expanded, setExpanded] = useState(false)
+  const [showWechatImport, setShowWechatImport] = useState(false)
+  const [wechatArticles, setWechatArticles] = useState<WechatArticle[]>([])
+  const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set())
+  const [loadingWechat, setLoadingWechat] = useState(false)
 
   const handleAddArticle = () => {
     if (!articleInput.trim()) {
@@ -65,6 +78,67 @@ export default function StyleFeedingSection() {
     } finally {
       setStyleAnalyzing(false)
     }
+  }
+
+  const handleWechatImport = async () => {
+    if (!storeSettings.wechatAppId || !storeSettings.wechatAppSecret) {
+      addToast('请先在设置中配置微信公众平台', 'error')
+      return
+    }
+
+    setLoadingWechat(true)
+    setShowWechatImport(true)
+    try {
+      const res = await fetch('/api/wechat/articles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appId: storeSettings.wechatAppId,
+          appSecret: storeSettings.wechatAppSecret,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || '获取文章失败')
+      setWechatArticles(data.articles || [])
+      addToast(`获取到 ${data.articles?.length || 0} 篇文章`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '获取文章失败'
+      addToast(msg, 'error')
+    } finally {
+      setLoadingWechat(false)
+    }
+  }
+
+  const toggleArticleSelection = (mediaId: string) => {
+    const newSelected = new Set(selectedArticles)
+    if (newSelected.has(mediaId)) {
+      newSelected.delete(mediaId)
+    } else {
+      newSelected.add(mediaId)
+    }
+    setSelectedArticles(newSelected)
+  }
+
+  const handleImportSelected = () => {
+    const selected = wechatArticles.filter(a => selectedArticles.has(a.mediaId))
+    if (selected.length === 0) {
+      addToast('请选择要导入的文章', 'error')
+      return
+    }
+
+    for (const article of selected) {
+      addStyleArticle({
+        id: article.mediaId,
+        title: article.title,
+        content: article.digest || article.title, // 微信不提供全文内容，用摘要代替
+        addedAt: Date.now(),
+      })
+    }
+
+    addToast(`已导入 ${selected.length} 篇文章`)
+    setShowWechatImport(false)
+    setSelectedArticles(new Set())
+    setWechatArticles([])
   }
 
   // 始终渲染头部（用于展示功能入口），只有内容区域根据状态显示/隐藏
@@ -140,7 +214,82 @@ export default function StyleFeedingSection() {
                 </button>
               )}
             </div>
+
+            {/* 从公众号导入按钮 */}
+            <button
+              onClick={handleWechatImport}
+              disabled={loadingWechat}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm border border-green-300 text-green-600 rounded-lg hover:bg-green-50 disabled:bg-slate-50 disabled:text-slate-400 transition-colors"
+            >
+              {loadingWechat ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  获取文章列表...
+                </>
+              ) : (
+                <>
+                  <ExternalLink size={14} />
+                  从公众号导入文章
+                </>
+              )}
+            </button>
           </div>
+
+          {/* 微信文章导入面板 */}
+          {showWechatImport && (
+            <div className="border border-green-200 rounded-xl p-4 bg-green-50/50">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-green-700">选择文章导入</span>
+                <button
+                  onClick={() => setShowWechatImport(false)}
+                  className="text-xs text-slate-500 hover:text-slate-700"
+                >
+                  收起
+                </button>
+              </div>
+
+              {wechatArticles.length === 0 && !loadingWechat ? (
+                <p className="text-sm text-slate-500 text-center py-4">暂无文章，请确认是否已发布图文消息</p>
+              ) : (
+                <>
+                  <div className="max-h-60 overflow-y-auto space-y-2 mb-3">
+                    {wechatArticles.map((article) => (
+                      <div
+                        key={article.mediaId}
+                        onClick={() => toggleArticleSelection(article.mediaId)}
+                        className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                          selectedArticles.has(article.mediaId)
+                            ? 'bg-green-100 border border-green-300'
+                            : 'bg-white border border-slate-200 hover:border-green-200'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded flex-shrink-0 flex items-center justify-center ${
+                          selectedArticles.has(article.mediaId)
+                            ? 'bg-green-500 text-white'
+                            : 'border border-slate-300'
+                        }`}>
+                          {selectedArticles.has(article.mediaId) && <Check size={12} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-800 truncate">{article.title}</p>
+                          {article.digest && (
+                            <p className="text-xs text-slate-500 line-clamp-2 mt-1">{article.digest}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={handleImportSelected}
+                    disabled={selectedArticles.size === 0}
+                    className="w-full px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+                  >
+                    导入所选文章 ({selectedArticles.size})
+                  </button>
+                </>
+              )}
+            </div>
+          )}
 
           {/* 空状态提示 */}
           {styleArticles.length === 0 && (
