@@ -14,6 +14,7 @@ import coverRoutes from './routes/cover.js'
 import styleRoutes from './routes/style.js'
 import humanizeRoutes from './routes/humanize.js'
 import wechatRoutes from './routes/wechat.js'
+import fetchArticleRoutes from './routes/fetchArticle.js'
 import testRoutes from './routes/test.js'
 
 dotenv.config()
@@ -33,6 +34,7 @@ app.use('/api', coverRoutes)
 app.use('/api', styleRoutes)
 app.use('/api', humanizeRoutes)
 app.use('/api', wechatRoutes)
+app.use('/api', fetchArticleRoutes)
 app.use('/api', testRoutes)
 
 // 获取写作风格列表

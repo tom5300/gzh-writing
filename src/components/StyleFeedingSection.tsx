@@ -20,11 +20,13 @@ export default function StyleFeedingSection() {
 
   const [articleInput, setArticleInput] = useState('')
   const [articleTitle, setArticleTitle] = useState('')
+  const [articleLink, setArticleLink] = useState('')
   const [expanded, setExpanded] = useState(false)
   const [showWechatImport, setShowWechatImport] = useState(false)
   const [wechatArticles, setWechatArticles] = useState<WechatArticle[]>([])
   const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set())
   const [loadingWechat, setLoadingWechat] = useState(false)
+  const [loadingLink, setLoadingLink] = useState(false)
 
   const handleAddArticle = () => {
     if (!articleInput.trim()) {
@@ -44,6 +46,42 @@ export default function StyleFeedingSection() {
     setArticleInput('')
     setArticleTitle('')
     addToast('文章已添加')
+  }
+
+  const handleFetchFromLink = async () => {
+    if (!articleLink.trim()) {
+      addToast('请输入文章链接', 'error')
+      return
+    }
+    if (!articleLink.includes('mp.weixin.qq.com')) {
+      addToast('仅支持微信公众平台文章链接', 'error')
+      return
+    }
+
+    setLoadingLink(true)
+    try {
+      const res = await fetch('/api/fetch-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: articleLink.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || '获取文章失败')
+
+      addStyleArticle({
+        id: Date.now().toString(),
+        title: data.title || `文章 ${styleArticles.length + 1}`,
+        content: data.content,
+        addedAt: Date.now(),
+      })
+      setArticleLink('')
+      addToast('文章已获取并添加')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '获取文章失败'
+      addToast(msg, 'error')
+    } finally {
+      setLoadingLink(false)
+    }
   }
 
   const handleAnalyzeStyle = async () => {
@@ -175,6 +213,33 @@ export default function StyleFeedingSection() {
         <div className="px-5 pb-5 space-y-4">
           {/* 添加文章表单 */}
           <div className="space-y-2">
+            {/* 链接输入区域 */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={articleLink}
+                onChange={(e) => setArticleLink(e.target.value)}
+                placeholder="粘贴微信文章链接获取内容..."
+                className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 focus:border-green-400"
+              />
+              <button
+                onClick={handleFetchFromLink}
+                disabled={!articleLink.trim() || loadingLink}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+              >
+                {loadingLink ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <ExternalLink size={14} />
+                )}
+                获取
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <span className="flex-1 text-center">— 或手动粘贴内容 —</span>
+            </div>
+
             <input
               type="text"
               value={articleTitle}
