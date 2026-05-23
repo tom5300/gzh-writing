@@ -22,24 +22,24 @@ export default function Hero() {
       <div className="relative max-w-3xl mx-auto px-5 text-center">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/10 text-xs text-indigo-200 mb-8 backdrop-blur-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>AI Agent 驱动的写作神器</span>
+          <span>新一代 AI 驱动的内容创作平台</span>
         </div>
 
         <h1 className="text-4xl sm:text-5xl font-extrabold text-white leading-[1.15] tracking-tight">
-          别折腾自己了{' '}
+          告别创作瓶颈{' '}
           <span className="bg-gradient-to-r from-indigo-300 to-emerald-300 bg-clip-text text-transparent">
-            让AI写吧
+            让 AI 替你思考
           </span>
         </h1>
 
         <p className="mt-5 text-base sm:text-lg text-slate-300 leading-relaxed max-w-xl mx-auto">
-          从灵感到成品，三步搞定正文、标题摘要、封面配图
+          输入主题，AI 即可生成专业文案、爆款标题与精美封面，一站式完成内容生产全流程
         </p>
 
         <div className="mt-14 flex items-center justify-center gap-6 text-xs text-slate-500">
-          <span className="flex items-center gap-1.5"><Shield size={14} className="text-emerald-500/60" />数据本地存储</span>
-          <span className="flex items-center gap-1.5"><Plug size={14} className="text-indigo-400/60" />自由接入模型</span>
-          <span className="flex items-center gap-1.5"><Zap size={14} className="text-amber-400/60" />流式实时生成</span>
+          <span className="flex items-center gap-1.5"><Shield size={14} className="text-emerald-500/60" />隐私数据本地存储</span>
+          <span className="flex items-center gap-1.5"><Plug size={14} className="text-indigo-400/60" />支持全模型接入</span>
+          <span className="flex items-center gap-1.5"><Zap size={14} className="text-amber-400/60" />流式输出即时可见</span>
         </div>
       </div>
     </section>
