@@ -16,6 +16,7 @@ import humanizeRoutes from './routes/humanize.js'
 import wechatRoutes from './routes/wechat.js'
 import fetchArticleRoutes from './routes/fetchArticle.js'
 import sensitiveRoutes from './routes/sensitive.js'
+import formatArticleRoutes from './routes/formatArticle.js'
 import testRoutes from './routes/test.js'
 
 dotenv.config()
@@ -37,6 +38,7 @@ app.use('/api', humanizeRoutes)
 app.use('/api', wechatRoutes)
 app.use('/api', fetchArticleRoutes)
 app.use('/api', sensitiveRoutes)
+app.use('/api', formatArticleRoutes)
 app.use('/api', testRoutes)
 
 // 获取写作风格列表

@@ -377,3 +377,43 @@ export async function checkSensitiveWords(): Promise<{
     return null
   }
 }
+
+// 一键排版 - 将 Markdown 转换为公众号风格 HTML
+export async function formatArticle(): Promise<string | null> {
+  const { currentArticle, settings } = store()
+
+  if (!currentArticle) {
+    store().addToast('请先生成文章', 'error')
+    return null
+  }
+
+  if (!settings.apiUrl || !settings.apiKey || !settings.modelName) {
+    store().addToast('请先配置 API 设置', 'error')
+    return null
+  }
+
+  try {
+    const res = await fetch('/api/format-article', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        article: currentArticle,
+        apiUrl: settings.apiUrl,
+        apiKey: settings.apiKey,
+        modelName: settings.modelName,
+      }),
+    })
+
+    if (!res.ok) {
+      const data = await res.json()
+      throw new Error(data.error || '排版失败')
+    }
+
+    const data = await res.json()
+    return data.formattedHtml || null
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '排版失败'
+    store().addToast(msg, 'error')
+    return null
+  }
+}

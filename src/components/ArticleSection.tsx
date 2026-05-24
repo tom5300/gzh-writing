@@ -1,7 +1,7 @@
 import { useWritingStore } from '../store/writingStore'
 import { marked } from 'marked'
-import { Copy, List, Loader2, Sparkles, Image, Check, X, Shield, AlertTriangle, AlertCircle } from 'lucide-react'
-import { copyToClipboard, generateTitles, generateArticleImages, checkSensitiveWords } from '../services/api'
+import { Copy, List, Loader2, Sparkles, Image, Check, X, Shield, AlertTriangle, AlertCircle, Layout } from 'lucide-react'
+import { copyToClipboard, generateTitles, generateArticleImages, checkSensitiveWords, formatArticle } from '../services/api'
 import { useState } from 'react'
 
 export default function ArticleSection() {
@@ -19,6 +19,9 @@ export default function ArticleSection() {
     sensitiveChecking,
     setSensitiveCheckResult,
   } = useWritingStore()
+
+  const [formattedHtml, setFormattedHtml] = useState<string | null>(null)
+  const [formatting, setFormatting] = useState(false)
 
   if (!currentArticle && !articleGenerating) return null
 
@@ -53,6 +56,27 @@ export default function ArticleSection() {
     const result = await checkSensitiveWords()
     if (result) {
       setSensitiveCheckResult(result)
+    }
+  }
+
+  // 执行一键排版
+  const handleFormatArticle = async () => {
+    setFormatting(true)
+    try {
+      const html = await formatArticle()
+      if (html) {
+        setFormattedHtml(html)
+        useWritingStore.getState().addToast('排版完成，可复制到公众号使用')
+      }
+    } finally {
+      setFormatting(false)
+    }
+  }
+
+  // 复制排版后的 HTML
+  const copyFormattedHtml = () => {
+    if (formattedHtml) {
+      copyToClipboard(formattedHtml)
     }
   }
 
@@ -92,6 +116,14 @@ export default function ArticleSection() {
             >
               {sensitiveChecking ? <Loader2 size={14} className="animate-spin" /> : <Shield size={14} />}
               <span>{sensitiveChecking ? '检测中...' : '敏感词检测'}</span>
+            </button>
+            <button
+              onClick={handleFormatArticle}
+              disabled={formatting}
+              className="px-3 py-1.5 text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-50"
+            >
+              {formatting ? <Loader2 size={14} className="animate-spin" /> : <Layout size={14} />}
+              <span>{formatting ? '排版中...' : '一键排版'}</span>
             </button>
             <button
               onClick={() => copyToClipboard(currentArticle)}
@@ -149,6 +181,51 @@ export default function ArticleSection() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* 排版结果预览 */}
+      {formattedHtml && (
+        <div className="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-cyan-50 to-blue-50">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-cyan-700">公众号排版预览</span>
+              <span className="text-xs text-cyan-600 bg-cyan-100 px-2 py-0.5 rounded-full">可直接复制</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={copyFormattedHtml}
+                className="px-3 py-1.5 text-sm bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 flex items-center gap-1.5 transition-all"
+              >
+                <Copy size={14} />
+                复制排版
+              </button>
+              <button
+                onClick={() => setFormattedHtml(null)}
+                className="px-3 py-1.5 text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1.5 transition-all"
+              >
+                <X size={14} />
+                关闭
+              </button>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg p-4 max-h-96 overflow-y-auto border border-cyan-100">
+            <style>{`
+              .formatted-preview h1 { font-size: 20px; font-weight: bold; text-align: center; color: #1a1a1a; margin-bottom: 16px; }
+              .formatted-preview h2 { font-size: 17px; font-weight: bold; color: #2c3e50; margin: 24px 0 12px; border-left: 4px solid #4a90a4; padding-left: 12px; }
+              .formatted-preview h3 { font-size: 15px; font-weight: bold; color: #34495e; margin: 16px 0 8px; }
+              .formatted-preview p { font-size: 15px; color: #3f3f3f; line-height: 1.8; margin: 8px 0; }
+              .formatted-preview strong { color: #e74c3c; }
+              .formatted-preview em { color: #595959; font-style: italic; }
+              .formatted-preview blockquote { background: #f8f9fa; border-left: 4px solid #4a90a4; padding: 12px 16px; margin: 12px 0; border-radius: 4px; }
+              .formatted-preview ul, .formatted-preview ol { padding-left: 24px; margin: 8px 0; }
+              .formatted-preview li { font-size: 15px; color: #3f3f3f; line-height: 1.8; margin: 4px 0; }
+              .formatted-preview hr { border: none; border-top: 1px solid #e0e0e0; margin: 24px 0; }
+              .formatted-preview img { max-width: 100%; height: auto; margin: 16px 0; border-radius: 8px; }
+              .formatted-preview .highlight { background: #fff3cd; padding: 2px 4px; border-radius: 2px; }
+            `}</style>
+            <div className="formatted-preview" dangerouslySetInnerHTML={{ __html: formattedHtml }} />
+          </div>
         </div>
       )}
 
