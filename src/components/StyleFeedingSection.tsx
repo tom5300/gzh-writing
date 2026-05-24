@@ -63,19 +63,36 @@ export default function StyleFeedingSection() {
       const res = await fetch('/api/fetch-article', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: articleLink.trim() }),
+        body: JSON.stringify({
+          url: articleLink.trim(),
+          apiUrl: storeSettings.apiUrl,
+          apiKey: storeSettings.apiKey,
+          modelName: storeSettings.modelName,
+          extractImages: true,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || '获取文章失败')
 
+      // 合并文章内容和图片文字
+      let fullContent = data.content || ''
+      if (data.imageTexts && data.imageTexts.length > 0) {
+        fullContent += '\n\n--- 图片内容 ---\n' + data.imageTexts.join('\n\n')
+      }
+
       addStyleArticle({
         id: Date.now().toString(),
         title: data.title || `文章 ${styleArticles.length + 1}`,
-        content: data.content,
+        content: fullContent,
         addedAt: Date.now(),
       })
       setArticleLink('')
-      addToast('文章已获取并添加')
+
+      if (data.imageTexts && data.imageTexts.length > 0) {
+        addToast(`文章已获取，额外提取了 ${data.processedImageCount} 张图片内容`)
+      } else {
+        addToast('文章已获取并添加')
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : '获取文章失败'
       addToast(msg, 'error')

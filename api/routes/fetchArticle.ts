@@ -18,8 +18,60 @@ async function fetchPage(url: string): Promise<string> {
   return res.text()
 }
 
+// 下载图片并转为 base64
+async function downloadImageAsBase64(url: string): Promise<string> {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`下载图片失败: ${res.status}`)
+  const buffer = await res.arrayBuffer()
+  const base64 = Buffer.from(buffer).toString('base64')
+  const mimeType = res.headers.get('content-type') || 'image/jpeg'
+  return `data:${mimeType};base64,${base64}`
+}
+
+// 使用视觉 API 提取图片内容
+async function extractImageText(imageData: string, apiUrl: string, apiKey: string, modelName: string): Promise<string> {
+  const cleanUrl = apiUrl.replace('/chat/completions', '/vision')
+
+  const body = {
+    model: modelName.includes('gpt') ? 'gpt-4o' : modelName,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: '请描述这张图片的内容，如果是截图或包含文字的图片，请完整提取所有文字。直接输出图片中的文字，不要解释。',
+          },
+          {
+            type: 'image_url',
+            image_url: { url: imageData },
+          },
+        ],
+      },
+    ],
+    max_tokens: 2000,
+  }
+
+  const res = await fetch(cleanUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`视觉 API 错误: ${err}`)
+  }
+
+  const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+  return data.choices?.[0]?.message?.content || ''
+}
+
 // 从微信文章页面提取内容
-function extractWechatContent(html: string): { title: string; author: string; content: string; digest: string } {
+function extractWechatContent(html: string): { title: string; author: string; content: string; digest: string; imageUrls: string[] } {
   // 提取标题
   let titleMatch = html.match(/<h1[^>]*id="activity-name"[^>]*>([^<]+)<\/h1>/)
   if (!titleMatch) {
@@ -46,7 +98,19 @@ function extractWechatContent(html: string): { title: string; author: string; co
   if (!contentMatch) {
     contentMatch = html.match(/id="js_content"[^>]*>([\s\S]*?)id="js_pc_qr_code"/)
   }
-  
+
+  // 提取图片 URL
+  const imageUrls: string[] = []
+  if (contentMatch) {
+    const imgMatches = contentMatch[1].match(/data-src="([^"]+)"/g) || []
+    for (const match of imgMatches) {
+      const url = match.match(/data-src="([^"]+)"/)?.[1]
+      if (url && !url.includes('qrcode') && !url.includes('qr_code')) {
+        imageUrls.push(url)
+      }
+    }
+  }
+
   let content = ''
   if (contentMatch) {
     // 移除所有 HTML 标签但保留文本
@@ -62,13 +126,13 @@ function extractWechatContent(html: string): { title: string; author: string; co
       .trim()
   }
 
-  return { title, author, content, digest }
+  return { title, author, content, digest, imageUrls }
 }
 
-// 抓取微信文章内容
+// 抓取微信文章内容（支持图片内容提取）
 router.post('/fetch-article', async (req: Request, res: Response) => {
   try {
-    const { url } = req.body
+    const { url, apiUrl, apiKey, modelName, extractImages } = req.body
 
     if (!url) {
       res.status(400).json({ error: '请提供文章链接' })
@@ -85,17 +149,47 @@ router.post('/fetch-article', async (req: Request, res: Response) => {
     const html = await fetchPage(url)
 
     // 提取内容
-    const { title, author, content, digest } = extractWechatContent(html)
+    const { title, author, content, digest, imageUrls } = extractWechatContent(html)
 
     if (!content || content.length < 50) {
       res.status(400).json({ error: '无法解析文章内容，请确认链接是否有效' })
       return
     }
 
+    let finalContent = content
+    let imageTexts: string[] = []
+
+    // 如果需要提取图片内容，且提供了 API 配置
+    if (extractImages && apiUrl && apiKey && modelName && imageUrls.length > 0) {
+      try {
+        // 限制处理的图片数量（最多 5 张，避免 API 调用过多）
+        const imagesToProcess = imageUrls.slice(0, 5)
+
+        for (const imgUrl of imagesToProcess) {
+          try {
+            const imageData = await downloadImageAsBase64(imgUrl)
+            const imageText = await extractImageText(imageData, apiUrl, apiKey, modelName)
+            if (imageText && imageText.trim()) {
+              imageTexts.push(imageText.trim())
+            }
+          } catch (imgErr) {
+            console.error('提取图片内容失败:', imgErr)
+            // 继续处理下一张图片
+          }
+        }
+      } catch (apiErr) {
+        console.error('图片内容提取失败:', apiErr)
+        // 不阻止返回，只是没有图片内容
+      }
+    }
+
     res.json({
       title,
       author,
-      content,
+      content: finalContent,
+      imageTexts,
+      imageCount: imageUrls.length,
+      processedImageCount: imageTexts.length,
       digest,
       url,
     })
