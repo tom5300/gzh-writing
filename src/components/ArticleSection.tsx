@@ -1,6 +1,6 @@
 import { useWritingStore } from '../store/writingStore'
 import { marked } from 'marked'
-import { Copy, List, Loader2, Sparkles, Image, Check, X, Shield, AlertTriangle, AlertCircle, Layout } from 'lucide-react'
+import { Copy, List, Loader2, Sparkles, Image, Check, X, Shield, AlertTriangle, AlertCircle, Layout, Trash2, Save } from 'lucide-react'
 import { copyToClipboard, generateTitles, generateArticleImages, checkSensitiveWords, formatArticle } from '../services/api'
 import { useState } from 'react'
 
@@ -18,6 +18,8 @@ export default function ArticleSection() {
     sensitiveCheckResult,
     sensitiveChecking,
     setSensitiveCheckResult,
+    saveDraft,
+    resetWorkflow,
   } = useWritingStore()
 
   const [formattedHtml, setFormattedHtml] = useState<string | null>(null)
@@ -110,12 +112,32 @@ export default function ArticleSection() {
         {currentArticle && (
           <div className="flex items-center gap-2">
             <button
+              onClick={() => saveDraft()}
+              className="px-3 py-1.5 text-sm text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50 rounded-lg flex items-center gap-1.5 transition-all"
+              title="保存草稿"
+            >
+              <Save size={14} />
+              <span>保存</span>
+            </button>
+            <button
+              onClick={() => {
+                if (confirm('确定要删除这篇文章吗？')) {
+                  resetWorkflow()
+                }
+              }}
+              className="px-3 py-1.5 text-sm text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1.5 transition-all"
+              title="删除文章"
+            >
+              <Trash2 size={14} />
+            </button>
+            <div className="w-px h-4 bg-slate-200 mx-1" />
+            <button
               onClick={handleSensitiveCheck}
               disabled={sensitiveChecking}
               className="px-3 py-1.5 text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-50"
             >
               {sensitiveChecking ? <Loader2 size={14} className="animate-spin" /> : <Shield size={14} />}
-              <span>{sensitiveChecking ? '检测中...' : '敏感词检测'}</span>
+              <span>{sensitiveChecking ? '检测中...' : '敏感词'}</span>
             </button>
             <button
               onClick={handleFormatArticle}
@@ -123,21 +145,21 @@ export default function ArticleSection() {
               className="px-3 py-1.5 text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-50"
             >
               {formatting ? <Loader2 size={14} className="animate-spin" /> : <Layout size={14} />}
-              <span>{formatting ? '排版中...' : '一键排版'}</span>
+              <span>{formatting ? '排版中...' : '排版'}</span>
             </button>
             <button
               onClick={() => copyToClipboard(currentArticle)}
               className="px-3 py-1.5 text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg flex items-center gap-1.5 transition-all"
             >
               <Copy size={14} />
-              <span>复制正文</span>
+              <span>复制</span>
             </button>
             <button
               onClick={openHumanizerModal}
               className="px-3 py-1.5 text-sm text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg flex items-center gap-1.5 transition-all"
             >
               <Sparkles size={14} />
-              <span>去除AI味道</span>
+              <span>去AI味</span>
             </button>
           </div>
         )}

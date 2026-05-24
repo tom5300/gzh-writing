@@ -114,6 +114,15 @@ interface WritingState {
   humanizedArticle: string
   humanizing: boolean
   showHumanizerModal: boolean
+  // 草稿
+  drafts: Array<{
+    id: string
+    title: string
+    content: string
+    topic: string
+    styleName: string
+    createdAt: number
+  }>
   // Toast
   toasts: Array<{ id: string; message: string; type: 'success' | 'error' }>
 
@@ -166,6 +175,10 @@ interface WritingState {
   removeToast: (id: string) => void
   resetWorkflow: () => void
   clearAllData: () => void
+  // 草稿
+  saveDraft: (title?: string) => void
+  loadDraft: (id: string) => void
+  deleteDraft: (id: string) => void
 }
 
 const SETTINGS_KEY = 'wt_settings'
@@ -274,6 +287,8 @@ export const useWritingStore = create<WritingState>((set, get) => {
     humanizedArticle: '',
     humanizing: false,
     showHumanizerModal: false,
+    // 草稿
+    drafts: [],
     toasts: [],
 
     loadSettings: () => set({ settings: readSettings() }),
@@ -410,8 +425,55 @@ export const useWritingStore = create<WritingState>((set, get) => {
       saveWritingData(createWritingDataFromState(emptyState))
       get().addToast('数据已重置')
     },
+    saveDraft: (title) => {
+      const { currentArticle, topic, styles, selectedStyleId } = get()
+      if (!currentArticle) return
+
+      const styleName = styles.find(s => s.id === selectedStyleId)?.name || ''
+      const draftTitle = title || topic || `草稿 ${new Date().toLocaleString()}`
+      const newDraft = {
+        id: `draft_${Date.now()}`,
+        title: draftTitle,
+        content: currentArticle,
+        topic: topic,
+        styleName: styleName,
+        createdAt: Date.now(),
+      }
+
+      set((state) => {
+        const newDrafts = [...state.drafts, newDraft]
+        // 保存到 localStorage
+        try {
+          localStorage.setItem('wt_drafts', JSON.stringify(newDrafts))
+        } catch { /* ignore */ }
+        return { drafts: newDrafts }
+      })
+      get().addToast('已保存到草稿箱')
+    },
+    loadDraft: (id) => {
+      const { drafts } = get()
+      const draft = drafts.find(d => d.id === id)
+      if (draft) {
+        set({
+          topic: draft.topic,
+          currentArticle: draft.content,
+        })
+        get().addToast('已加载草稿')
+      }
+    },
+    deleteDraft: (id) => {
+      set((state) => {
+        const newDrafts = state.drafts.filter(d => d.id !== id)
+        try {
+          localStorage.setItem('wt_drafts', JSON.stringify(newDrafts))
+        } catch { /* ignore */ }
+        return { drafts: newDrafts }
+      })
+      get().addToast('草稿已删除')
+    },
     clearAllData: () => {
       localStorage.removeItem(WRITING_DATA_KEY)
+      localStorage.removeItem('wt_drafts')
       set({
         topic: '',
         currentArticle: '',
@@ -425,6 +487,7 @@ export const useWritingStore = create<WritingState>((set, get) => {
         styleArticles: [],
         styleFeatures: null,
         personalStyles: [],
+        drafts: [],
       })
       get().addToast('所有数据已清除')
     },
