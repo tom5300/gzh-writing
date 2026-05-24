@@ -228,3 +228,103 @@ export function copyToClipboard(text: string) {
     store().addToast('复制失败', 'error')
   })
 }
+
+// 根据文章内容生成配图
+export async function generateArticleImages() {
+  const { currentArticle, topic, settings } = store()
+
+  if (!currentArticle) {
+    store().addToast('请先生成文章', 'error')
+    return
+  }
+
+  if (!settings.imageUrl || !settings.imageApiKey || !settings.imageModel) {
+    store().addToast('请先在设置中配置图片生成模型', 'error')
+    return
+  }
+
+  store().setAddingArticleImages(true)
+  store().clearArticleImages()
+
+  try {
+    // 根据文章字数决定生成图片数量 (1-5张)
+    const wordCount = currentArticle.length
+    let imageCount = 1
+    if (wordCount > 500) imageCount = 2
+    if (wordCount > 1000) imageCount = 3
+    if (wordCount > 2000) imageCount = 4
+    if (wordCount > 3000) imageCount = 5
+
+    // 调用 API 生成配图提示词
+    const promptRes = await fetch('/api/cover/prompts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        article: currentArticle,
+        apiUrl: settings.apiUrl,
+        apiKey: settings.apiKey,
+        modelName: settings.modelName,
+        imageCount, // 传递图片数量需求
+      }),
+    })
+
+    if (!promptRes.ok) {
+      throw new Error('生成配图提示词失败')
+    }
+
+    const promptData = await promptRes.json() as { prompts?: string[] }
+    const prompts = promptData.prompts || []
+
+    // 如果没有返回足够提示词，使用默认值
+    while (prompts.length < imageCount) {
+      prompts.push(`文章配图：${topic || '相关主题'}，写实风格，高清`)
+    }
+
+    // 计算插入位置（均匀分布）
+    const positions: number[] = []
+    for (let i = 1; i <= imageCount; i++) {
+      positions.push(Math.floor((currentArticle.length / (imageCount + 1)) * i))
+    }
+
+    // 生成每张图片
+    for (let i = 0; i < imageCount && i < prompts.length; i++) {
+      const imageRes = await fetch('/api/cover/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: prompts[i],
+          apiUrl: settings.imageUrl,
+          apiKey: settings.imageApiKey,
+          modelName: settings.imageModel,
+        }),
+      })
+
+      if (!imageRes.ok) {
+        console.error(`生成第 ${i + 1} 张图片失败`)
+        continue
+      }
+
+      const imageData = await imageRes.json() as { url?: string; b64_json?: string; revised_prompt?: string }
+
+      store().addArticleImage({
+        position: positions[i],
+        url: imageData.url,
+        b64_json: imageData.b64_json,
+        revised_prompt: imageData.revised_prompt,
+        prompt: prompts[i],
+      })
+    }
+
+    const generatedCount = store().articleImages.length
+    if (generatedCount > 0) {
+      store().addToast(`已生成 ${generatedCount} 张配图，可插入到文章中`)
+    } else {
+      store().addToast('配图生成失败，请重试', 'error')
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '配图生成失败'
+    store().addToast(msg, 'error')
+  } finally {
+    store().setAddingArticleImages(false)
+  }
+}

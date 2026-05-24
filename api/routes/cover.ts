@@ -6,28 +6,30 @@ const router = Router()
 // 生成封面图 Prompt
 router.post('/cover/prompts', async (req: Request, res: Response) => {
   try {
-    const { article, apiUrl, apiKey, modelName } = req.body
+    const { article, apiUrl, apiKey, modelName, imageCount } = req.body
     if (!article || !apiUrl || !apiKey || !modelName) {
       res.status(400).json({ error: '缺少必要参数' })
       return
     }
 
+    const count = Math.min(Math.max(imageCount || 3, 1), 5) // 限制 1-5 个
+
     const systemPrompt = `你是一位视觉设计专家和 AI 绘图 Prompt 工程师。
 请根据用户提供的文章内容完成以下任务：
-1. 提炼 2-3 个关键内容点（简短概括，每个不超过15个字）
-2. 生成 3 个不同风格的封面图文生图 Prompt
+1. 提炼 ${count} 个关键内容点（简短概括，每个不超过15个字）
+2. 生成 ${count} 个不同风格的配图 Prompt
 Prompt 要求：
-- 统一宽高比 2.35:1（宽幅横图）
-- 风格各不相同，例如：科技感/赛博朋克、极简主义/扁平化、抽象艺术/概念化
+- 统一宽高比 16:9（横版图片，适合文章配图）
+- 风格各不相同，例如：写实摄影、插画风格、扁平设计、电影感等
 - 每个 Prompt 用英文撰写，包含详细的视觉描述、风格、色调、构图等
-- Prompt 中明确标注 aspect ratio 2.35:1
+- Prompt 中明确标注 aspect ratio 16:9
 请严格按以下 JSON 格式返回，不要返回任何其他内容：
 {
-  "keyPoints": ["关键点1", "关键点2", "关键点3"],
+  "keyPoints": ["关键点1", "关键点2", ...],
   "prompts": [
     "Prompt 1 in English...",
     "Prompt 2 in English...",
-    "Prompt 3 in English..."
+    ...
   ]
 }`
 

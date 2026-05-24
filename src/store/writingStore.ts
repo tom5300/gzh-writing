@@ -80,6 +80,9 @@ interface WritingState {
   topic: string
   currentArticle: string
   articleGenerating: boolean
+  // 文章配图
+  articleImages: Array<{ position: number; url?: string; b64_json?: string; revised_prompt?: string; prompt: string }>
+  addingArticleImages: boolean
   // 标题
   titles: TitleItem[]
   titlesGenerating: boolean
@@ -113,6 +116,10 @@ interface WritingState {
   setCurrentArticle: (article: string) => void
   appendArticle: (content: string) => void
   setArticleGenerating: (v: boolean) => void
+  setArticleImages: (images: Array<{ position: number; url?: string; b64_json?: string; revised_prompt?: string; prompt: string }>) => void
+  addArticleImage: (image: { position: number; url?: string; b64_json?: string; revised_prompt?: string; prompt: string }) => void
+  setAddingArticleImages: (v: boolean) => void
+  clearArticleImages: () => void
   setTitles: (titles: TitleItem[]) => void
   setTitlesGenerating: (v: boolean) => void
   setKeyPoints: (points: string[]) => void
@@ -223,6 +230,8 @@ export const useWritingStore = create<WritingState>((set, get) => {
     topic: savedData.topic,
     currentArticle: savedData.currentArticle,
     articleGenerating: false,
+    articleImages: [],
+    addingArticleImages: false,
     titles: savedData.titles,
     titlesGenerating: false,
     keyPoints: savedData.keyPoints,
@@ -264,6 +273,10 @@ export const useWritingStore = create<WritingState>((set, get) => {
       return { currentArticle: newArticle }
     }),
     setArticleGenerating: (v) => set({ articleGenerating: v }),
+    setArticleImages: (images) => set({ articleImages: images }),
+    addArticleImage: (image) => set((state) => ({ articleImages: [...state.articleImages, image] })),
+    setAddingArticleImages: (v) => set({ addingArticleImages: v }),
+    clearArticleImages: () => set({ articleImages: [] }),
     setTitles: (titles) => {
       set({ titles })
       saveWritingData(createWritingDataFromState({ ...get(), titles }))
@@ -356,6 +369,7 @@ export const useWritingStore = create<WritingState>((set, get) => {
     resetWorkflow: () => {
       const emptyState: Partial<WritingState> = {
         currentArticle: '',
+        articleImages: [],
         titles: [],
         keyPoints: [],
         coverPrompts: [],
@@ -371,6 +385,7 @@ export const useWritingStore = create<WritingState>((set, get) => {
       set({
         topic: '',
         currentArticle: '',
+        articleImages: [],
         titles: [],
         keyPoints: [],
         coverPrompts: [],
