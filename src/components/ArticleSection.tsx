@@ -1,10 +1,24 @@
 import { useWritingStore } from '../store/writingStore'
 import { marked } from 'marked'
-import { Copy, List, Loader2, Sparkles, Image, Check, X } from 'lucide-react'
-import { copyToClipboard, generateTitles, generateArticleImages } from '../services/api'
+import { Copy, List, Loader2, Sparkles, Image, Check, X, Shield, AlertTriangle, AlertCircle } from 'lucide-react'
+import { copyToClipboard, generateTitles, generateArticleImages, checkSensitiveWords } from '../services/api'
+import { useState } from 'react'
 
 export default function ArticleSection() {
-  const { currentArticle, articleGenerating, titlesGenerating, styles, selectedStyleId, openHumanizerModal, articleImages, addingArticleImages, setCurrentArticle } = useWritingStore()
+  const {
+    currentArticle,
+    articleGenerating,
+    titlesGenerating,
+    styles,
+    selectedStyleId,
+    openHumanizerModal,
+    articleImages,
+    addingArticleImages,
+    setCurrentArticle,
+    sensitiveCheckResult,
+    sensitiveChecking,
+    setSensitiveCheckResult,
+  } = useWritingStore()
 
   if (!currentArticle && !articleGenerating) return null
 
@@ -34,6 +48,32 @@ export default function ArticleSection() {
     useWritingStore.getState().addToast('配图已插入文章')
   }
 
+  // 执行敏感词检测
+  const handleSensitiveCheck = async () => {
+    const result = await checkSensitiveWords()
+    if (result) {
+      setSensitiveCheckResult(result)
+    }
+  }
+
+  // 获取风险等级颜色
+  const getRiskColor = (level: string) => {
+    switch (level) {
+      case 'high': return 'text-red-600 bg-red-50'
+      case 'medium': return 'text-amber-600 bg-amber-50'
+      default: return 'text-green-600 bg-green-50'
+    }
+  }
+
+  // 获取风险图标
+  const getRiskIcon = (level: string) => {
+    switch (level) {
+      case 'high': return <AlertCircle size={16} />
+      case 'medium': return <AlertTriangle size={16} />
+      default: return <Shield size={16} />
+    }
+  }
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-slide-up">
       <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
@@ -45,6 +85,14 @@ export default function ArticleSection() {
         </div>
         {currentArticle && (
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleSensitiveCheck}
+              disabled={sensitiveChecking}
+              className="px-3 py-1.5 text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-50"
+            >
+              {sensitiveChecking ? <Loader2 size={14} className="animate-spin" /> : <Shield size={14} />}
+              <span>{sensitiveChecking ? '检测中...' : '敏感词检测'}</span>
+            </button>
             <button
               onClick={() => copyToClipboard(currentArticle)}
               className="px-3 py-1.5 text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg flex items-center gap-1.5 transition-all"
@@ -62,6 +110,48 @@ export default function ArticleSection() {
           </div>
         )}
       </div>
+
+      {/* 敏感词检测结果 */}
+      {sensitiveCheckResult && (
+        <div className="px-5 py-4 border-b border-slate-100 bg-slate-50">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              {getRiskIcon(sensitiveCheckResult.riskLevel)}
+              <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${getRiskColor(sensitiveCheckResult.riskLevel)}`}>
+                {sensitiveCheckResult.riskLevel === 'high' ? '高风险' : sensitiveCheckResult.riskLevel === 'medium' ? '中风险' : '低风险'}
+              </span>
+              <span className="text-sm text-slate-600">{sensitiveCheckResult.summary}</span>
+            </div>
+            <button
+              onClick={() => setSensitiveCheckResult(null)}
+              className="text-slate-400 hover:text-slate-600"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          {sensitiveCheckResult.issues.length > 0 && (
+            <div className="space-y-2">
+              {sensitiveCheckResult.issues.map((issue, idx) => (
+                <div key={idx} className="bg-white rounded-lg p-3 border border-slate-200">
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs px-2 py-0.5 bg-red-100 text-red-600 rounded">{issue.type}</span>
+                    <div className="flex-1">
+                      <p className="text-sm text-slate-700">{issue.description}</p>
+                      {issue.keywords.length > 0 && (
+                        <p className="text-xs text-slate-500 mt-1">关键词: {issue.keywords.join(', ')}</p>
+                      )}
+                      {issue.suggestion && (
+                        <p className="text-xs text-cyan-600 mt-1">建议: {issue.suggestion}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="px-5 py-4 prose prose-slate max-w-none min-h-[100px] text-sm">
         {articleGenerating && !currentArticle ? (
           <div className="text-slate-400 animate-pulse">正在生成文章...</div>

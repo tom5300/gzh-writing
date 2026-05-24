@@ -83,6 +83,19 @@ interface WritingState {
   // 文章配图
   articleImages: Array<{ position: number; url?: string; b64_json?: string; revised_prompt?: string; prompt: string }>
   addingArticleImages: boolean
+  // 敏感词检测
+  sensitiveCheckResult: {
+    isSensitive: boolean
+    riskLevel: string
+    issues: Array<{
+      type: string
+      description: string
+      keywords: string[]
+      suggestion: string
+    }>
+    summary: string
+  } | null
+  sensitiveChecking: boolean
   // 标题
   titles: TitleItem[]
   titlesGenerating: boolean
@@ -120,6 +133,18 @@ interface WritingState {
   addArticleImage: (image: { position: number; url?: string; b64_json?: string; revised_prompt?: string; prompt: string }) => void
   setAddingArticleImages: (v: boolean) => void
   clearArticleImages: () => void
+  setSensitiveCheckResult: (result: {
+    isSensitive: boolean
+    riskLevel: string
+    issues: Array<{
+      type: string
+      description: string
+      keywords: string[]
+      suggestion: string
+    }>
+    summary: string
+  } | null) => void
+  setSensitiveChecking: (v: boolean) => void
   setTitles: (titles: TitleItem[]) => void
   setTitlesGenerating: (v: boolean) => void
   setKeyPoints: (points: string[]) => void
@@ -232,6 +257,8 @@ export const useWritingStore = create<WritingState>((set, get) => {
     articleGenerating: false,
     articleImages: [],
     addingArticleImages: false,
+    sensitiveCheckResult: null,
+    sensitiveChecking: false,
     titles: savedData.titles,
     titlesGenerating: false,
     keyPoints: savedData.keyPoints,
@@ -277,6 +304,8 @@ export const useWritingStore = create<WritingState>((set, get) => {
     addArticleImage: (image) => set((state) => ({ articleImages: [...state.articleImages, image] })),
     setAddingArticleImages: (v) => set({ addingArticleImages: v }),
     clearArticleImages: () => set({ articleImages: [] }),
+    setSensitiveCheckResult: (result) => set({ sensitiveCheckResult: result }),
+    setSensitiveChecking: (v) => set({ sensitiveChecking: v }),
     setTitles: (titles) => {
       set({ titles })
       saveWritingData(createWritingDataFromState({ ...get(), titles }))
@@ -370,6 +399,7 @@ export const useWritingStore = create<WritingState>((set, get) => {
       const emptyState: Partial<WritingState> = {
         currentArticle: '',
         articleImages: [],
+        sensitiveCheckResult: null,
         titles: [],
         keyPoints: [],
         coverPrompts: [],
@@ -386,6 +416,7 @@ export const useWritingStore = create<WritingState>((set, get) => {
         topic: '',
         currentArticle: '',
         articleImages: [],
+        sensitiveCheckResult: null,
         titles: [],
         keyPoints: [],
         coverPrompts: [],

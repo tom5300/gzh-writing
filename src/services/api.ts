@@ -328,3 +328,52 @@ export async function generateArticleImages() {
     store().setAddingArticleImages(false)
   }
 }
+
+// 敏感词检测
+export async function checkSensitiveWords(): Promise<{
+  isSensitive: boolean
+  riskLevel: string
+  issues: Array<{
+    type: string
+    description: string
+    keywords: string[]
+    suggestion: string
+  }>
+  summary: string
+} | null> {
+  const { currentArticle, settings } = store()
+
+  if (!currentArticle) {
+    store().addToast('请先生成文章', 'error')
+    return null
+  }
+
+  if (!settings.apiUrl || !settings.apiKey || !settings.modelName) {
+    store().addToast('请先配置 API 设置', 'error')
+    return null
+  }
+
+  try {
+    const res = await fetch('/api/check-sensitive', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        article: currentArticle,
+        apiUrl: settings.apiUrl,
+        apiKey: settings.apiKey,
+        modelName: settings.modelName,
+      }),
+    })
+
+    if (!res.ok) {
+      const data = await res.json()
+      throw new Error(data.error || '检测失败')
+    }
+
+    return await res.json()
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '检测失败'
+    store().addToast(msg, 'error')
+    return null
+  }
+}
