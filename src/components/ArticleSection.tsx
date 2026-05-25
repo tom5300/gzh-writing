@@ -1,7 +1,7 @@
 import { useWritingStore } from '../store/writingStore'
 import { marked } from 'marked'
-import { Copy, List, Loader2, Sparkles, Image, Check, X, Shield, AlertTriangle, AlertCircle, Layout, Trash2, Save } from 'lucide-react'
-import { copyToClipboard, generateTitles, generateArticleImages, checkSensitiveWords, formatArticle } from '../services/api'
+import { Copy, List, Loader2, Sparkles, Image, Check, X, Shield, AlertTriangle, AlertCircle, Layout, Trash2, Save, Expand } from 'lucide-react'
+import { copyToClipboard, generateTitles, generateArticleImages, checkSensitiveWords, formatArticle, expandText } from '../services/api'
 import { useState } from 'react'
 
 export default function ArticleSection() {
@@ -24,6 +24,7 @@ export default function ArticleSection() {
 
   const [formattedHtml, setFormattedHtml] = useState<string | null>(null)
   const [formatting, setFormatting] = useState(false)
+  const [expanding, setExpanding] = useState(false)
 
   if (!currentArticle && !articleGenerating) return null
 
@@ -72,6 +73,20 @@ export default function ArticleSection() {
       }
     } finally {
       setFormatting(false)
+    }
+  }
+
+  // 执行一键扩写
+  const handleExpand = async () => {
+    if (!currentArticle.trim()) {
+      useWritingStore.getState().addToast('请先生成或输入文章内容', 'error')
+      return
+    }
+    setExpanding(true)
+    try {
+      await expandText(currentArticle)
+    } finally {
+      setExpanding(false)
     }
   }
 
@@ -146,6 +161,14 @@ export default function ArticleSection() {
             >
               {formatting ? <Loader2 size={14} className="animate-spin" /> : <Layout size={14} />}
               <span>{formatting ? '排版中...' : '排版'}</span>
+            </button>
+            <button
+              onClick={handleExpand}
+              disabled={expanding}
+              className="px-3 py-1.5 text-sm text-violet-600 hover:text-violet-700 hover:bg-violet-50 rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-50"
+            >
+              {expanding ? <Loader2 size={14} className="animate-spin" /> : <Expand size={14} />}
+              <span>{expanding ? '扩写中...' : '扩写'}</span>
             </button>
             <button
               onClick={() => copyToClipboard(currentArticle)}

@@ -417,3 +417,84 @@ export async function formatArticle(): Promise<string | null> {
     return null
   }
 }
+
+// 一键扩写 - 将文本扩写到 1000-3000 字
+export async function expandText(text: string): Promise<void> {
+  const { settings } = store()
+
+  if (!text || !text.trim()) {
+    store().addToast('请输入要扩写的内容', 'error')
+    return
+  }
+
+  if (!settings.apiUrl || !settings.apiKey || !settings.modelName) {
+    store().addToast('请先在设置中配置 API', 'error')
+    store().openSettings()
+    return
+  }
+
+  // 保存当前文章状态（扩写会替换当前文章）
+  const currentArticle = store().currentArticle
+
+  store().setCurrentArticle('')
+  store().setArticleGenerating(true)
+
+  try {
+    const response = await fetch('/api/expand', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: text,
+        apiUrl: settings.apiUrl,
+        apiKey: settings.apiKey,
+        modelName: settings.modelName,
+      }),
+    })
+
+    if (!response.ok) {
+      const err = await response.json()
+      throw new Error(err.error || '扩写失败')
+    }
+
+    const reader = response.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop()!
+
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (trimmed.startsWith('data: ')) {
+          const data = trimmed.slice(6)
+          if (data === '[DONE]') continue
+          try {
+            const parsed = JSON.parse(data)
+            if (parsed.error) throw new Error(parsed.error)
+            if (parsed.content) {
+              store().appendArticle(parsed.content)
+            }
+          } catch (e) {
+            if (e instanceof Error && !e.message.includes('JSON')) throw e
+          }
+        }
+      }
+    }
+
+    store().addToast('扩写完成！')
+  } catch (err) {
+    // 扩写失败时恢复原文章
+    if (currentArticle) {
+      store().setCurrentArticle(currentArticle)
+    }
+    const msg = err instanceof Error ? err.message : String(err)
+    store().addToast(msg, 'error')
+  } finally {
+    store().setArticleGenerating(false)
+  }
+}

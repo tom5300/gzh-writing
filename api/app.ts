@@ -18,6 +18,7 @@ import fetchArticleRoutes from './routes/fetchArticle.js'
 import sensitiveRoutes from './routes/sensitive.js'
 import formatArticleRoutes from './routes/formatArticle.js'
 import testRoutes from './routes/test.js'
+import expandRoutes from './routes/expand.js'
 
 dotenv.config()
 
@@ -40,6 +41,7 @@ app.use('/api', fetchArticleRoutes)
 app.use('/api', sensitiveRoutes)
 app.use('/api', formatArticleRoutes)
 app.use('/api', testRoutes)
+app.use('/api', expandRoutes)
 
 // 获取写作风格列表
 app.get('/api/styles', (_req: Request, res: Response) => {
